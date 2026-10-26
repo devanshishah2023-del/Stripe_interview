@@ -1,18 +1,18 @@
 # Shipping Cost Calculator Part 1
 def calculate_shipping_cost(order, shipping_cost):
-    country = order.get("country")                                   # CHANGED: .get
-    if country not in shipping_cost:                                 # NEW: unknown country
+    country = order.get("country")                                  
+    if country not in shipping_cost:                                 
         raise ValueError(f"No shipping rules for country: {country}")
     cost_map = {}
     for product_info in shipping_cost[country]:
         cost_map[product_info["product"]] = product_info["cost"]
     total = 0
-    for item in order.get("items", []):                              # CHANGED: .get
+    for item in order.get("items", []):                              
         product = item["product"]
         quantity = item["quantity"]
-        if product not in cost_map:                                  # NEW: unknown product
+        if product not in cost_map:                                 
             raise ValueError(f"No shipping rule for product: {product}")
-        if not isinstance(quantity, int) or quantity < 0:            # NEW: bad quantity
+        if not isinstance(quantity, int) or quantity < 0:           
             raise ValueError(f"Invalid quantity for {product}: {quantity}")
         total += quantity * cost_map[product]
 
@@ -22,39 +22,39 @@ def calculate_shipping_cost(order, shipping_cost):
 # Shipping Cost Calculator Part 2
 def calculate_shipping_cost(order, shipping_cost):
     country = order.get("country")
-    if country not in shipping_cost:                                 # NEW
+    if country not in shipping_cost:                                 
         raise ValueError(f"No shipping rules for country: {country}")
     cost_map = {}
     for product_info in shipping_cost[country]:
-        cost_map[product_info["product"]] = sorted(                  # CHANGED: sort tiers
+        cost_map[product_info["product"]] = sorted(                  
             product_info["costs"], key=lambda t: t["minQuantity"]
         )
     total = 0
     for item in order.get("items", []):
         product = item["product"]
         quantity = item["quantity"]
-        if product not in cost_map:                                  # NEW
+        if product not in cost_map:                                  
             raise ValueError(f"No shipping rule for product: {product}")
-        if not isinstance(quantity, int) or quantity < 0:            # NEW
+        if not isinstance(quantity, int) or quantity < 0:           
             raise ValueError(f"Invalid quantity for {product}: {quantity}")
-        covered = 0                                                  # CHANGED: bookmark, replaces 'remaining'
+        covered = 0                                                  
         for tier in cost_map[product]:
-            if covered >= quantity:                                  # CHANGED
+            if covered >= quantity:                                  
                 break
             max_qty = tier["maxQuantity"]
             cost = tier["cost"]
             if max_qty is None:
-                upper = quantity                                     # CHANGED
+                upper = quantity                                    
             else:
-                upper = min(quantity, max_qty)                       # CHANGED: replaces max_qty - min_qty
-            tier_units = upper - covered                             # CHANGED
-            if tier_units <= 0:                                      # NEW: skip empty tier
+                upper = min(quantity, max_qty)                      
+            tier_units = upper - covered                            
+            if tier_units <= 0:                                      
                 continue
 
             total += tier_units * cost
-            covered = upper                                          # CHANGED: move bookmark
+            covered = upper                                         
 
-        if covered < quantity:                                       # NEW: tiers ran out
+        if covered < quantity:                                      
             raise ValueError(f"Tiers don't cover {quantity} units of {product}")
 
     return total
@@ -63,44 +63,44 @@ def calculate_shipping_cost(order, shipping_cost):
 # Shipping Cost Calculator Part 3
 def calculate_shipping_cost(order, shipping_cost):
     country = order.get("country")
-    if country not in shipping_cost:                                 # NEW
+    if country not in shipping_cost:                                 
         raise ValueError(f"No shipping rules for country: {country}")
     cost_map = {}
     for product_info in shipping_cost[country]:
-        cost_map[product_info["product"]] = sorted(                  # CHANGED: sort tiers
+        cost_map[product_info["product"]] = sorted(                  
             product_info["costs"], key=lambda t: t["minQuantity"]
         )
     total = 0
     for item in order.get("items", []):
         product = item["product"]
         quantity = item["quantity"]
-        if product not in cost_map:                                  # NEW
+        if product not in cost_map:                                 
             raise ValueError(f"No shipping rule for product: {product}")
-        if not isinstance(quantity, int) or quantity < 0:            # NEW
+        if not isinstance(quantity, int) or quantity < 0:           
             raise ValueError(f"Invalid quantity for {product}: {quantity}")
-        covered = 0                                                  # CHANGED
+        covered = 0                                                 
         for tier in cost_map[product]:
-            if covered >= quantity:                                  # CHANGED
+            if covered >= quantity:                                 
                 break
             max_qty = tier["maxQuantity"]
             cost = tier["cost"]
-            pricing_type = tier.get("type", "incremental")           # CHANGED: default if missing
+            pricing_type = tier.get("type", "incremental")          
             if max_qty is None:
-                upper = quantity                                     # CHANGED
+                upper = quantity                                     
             else:
-                upper = min(quantity, max_qty)                       # CHANGED
-            tier_units = upper - covered                             # CHANGED
-            if tier_units <= 0:                                      # NEW: no flat fee for an empty tier
+                upper = min(quantity, max_qty)                       
+            tier_units = upper - covered                             
+            if tier_units <= 0:                                      
                 continue
 
             if pricing_type == "fixed":
                 total += cost
-            else:  # incremental
+            else:  
                 total += tier_units * cost
 
-            covered = upper                                          # CHANGED
+            covered = upper                                          
 
-        if covered < quantity:                                       # NEW
+        if covered < quantity:                                       
             raise ValueError(f"Tiers don't cover {quantity} units of {product}")
 
     return total
