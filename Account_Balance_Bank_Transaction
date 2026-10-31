@@ -1,0 +1,107 @@
+# ==========================================================
+# STEP 1: final balance of every account (only positive ones)
+# ==========================================================
+def get_account_balances(transactions):
+    balances = {}                      # account -> money
+
+    for txn in transactions:
+        account_id = txn["account_id"]
+        amount = txn["amount"]
+        balances[account_id] = balances.get(account_id, 0) + amount
+
+    # Keep only accounts with more than 0
+    result = {}
+    for account_id in balances:
+        if balances[account_id] > 0:
+            result[account_id] = balances[account_id]
+    return result
+
+
+# ==========================================================
+# STEP 2: reject a withdrawal that would make the balance negative
+# ==========================================================
+def process_transactions(transactions):
+    balances = {}
+    rejected = []
+
+    for txn in transactions:
+        account_id = txn["account_id"]
+        amount = txn["amount"]
+
+        current_balance = balances.get(account_id, 0)
+        new_balance = current_balance + amount
+
+        if new_balance < 0:
+            rejected.append(txn)               # not allowed -> remember it
+        else:
+            balances[account_id] = new_balance # allowed -> save new balance
+
+    return (balances, rejected)
+
+
+# ==========================================================
+# STEP 3: the platform account pays any shortfall
+# ==========================================================
+def process_with_coverage(transactions, platform_account_id):
+    balances = {}
+    total_coverage = 0                 # how much the platform paid in total
+
+    for txn in transactions:
+        account_id = txn["account_id"]
+        amount = txn["amount"]
+
+        current_balance = balances.get(account_id, 0)
+        new_balance = current_balance + amount
+
+        if new_balance < 0 and account_id != platform_account_id:
+            coverage_needed = -new_balance                    # -50 -> 50
+
+            # platform pays
+            balances[platform_account_id] = balances.get(platform_account_id, 0) - coverage_needed
+            total_coverage = total_coverage + coverage_needed
+
+            # user ends at exactly 0
+            balances[account_id] = 0
+        else:
+            balances[account_id] = new_balance
+
+    return total_coverage
+
+
+# ==========================================================
+# TESTS (examples from the question)
+# ==========================================================
+if __name__ == "__main__":
+    t1 = [
+        {"account_id": "account_A", "amount": 100},
+        {"account_id": "account_B", "amount": 50},
+        {"account_id": "account_A", "amount": -30},
+        {"account_id": "account_C", "amount": 200},
+        {"account_id": "account_B", "amount": -50},
+    ]
+    got = get_account_balances(t1)
+    print("Step 1:", "PASS" if got == {"account_A": 70, "account_C": 200} else "FAIL", got)
+
+    t2 = [
+        {"account_id": "account_A", "amount": 100},
+        {"account_id": "account_A", "amount": -150},
+        {"account_id": "account_B", "amount": 50},
+        {"account_id": "account_A", "amount": -80},
+        {"account_id": "account_B", "amount": -100},
+    ]
+    got = process_transactions(t2)
+    expected = ({"account_A": 20, "account_B": 50},
+                [{"account_id": "account_A", "amount": -150},
+                 {"account_id": "account_B", "amount": -100}])
+    print("Step 2:", "PASS" if got == expected else "FAIL", got)
+
+    t3 = [
+        {"account_id": "platform", "amount": 1000},
+        {"account_id": "account_A", "amount": 100},
+        {"account_id": "account_A", "amount": -150},
+        {"account_id": "account_B", "amount": 50},
+        {"account_id": "account_B", "amount": -100},
+        {"account_id": "account_A", "amount": -30},
+    ]
+    got = process_with_coverage(t3, "platform")
+    print("Step 3:", "PASS" if got == 130 else "FAIL", got)
