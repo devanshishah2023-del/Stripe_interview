@@ -1,0 +1,124 @@
+"""
+Stripe - Related Merchants (three parts)
+
+Each merchant row: [id, companyName, email, phone]
+Points for a match: company = 50, email = 30, phone = 25
+
+Part 1: merchants sharing ANY field with the target
+Part 2: merchants whose score with the target is >= threshold
+Part 3: Part 2 results + their Part 2 results (up to two links)
+
+Run:  python3 related_merchants_solution.py
+"""
+
+
+# ==========================================================
+# PART 1: share at least one field with the target
+# ==========================================================
+def part1(merchants, target_id):
+    # Find the target's row
+    for row in merchants:
+        if row[0] == target_id:
+            target = row
+
+    result = []
+    for row in merchants:
+        if row[0] == target_id:
+            continue                                  # skip the target itself
+        same_company = row[1] == target[1]
+        same_email = row[2] == target[2]
+        same_phone = row[3] == target[3]
+        if same_company or same_email or same_phone:  # at least one match
+            result.append(row[0])
+    return sorted(result)
+
+
+# ==========================================================
+# PART 2: score >= threshold
+# ==========================================================
+def score(row1, row2):
+    """Add points for every field that matches."""
+    total = 0
+    if row1[1] == row2[1]:
+        total += 50                                   # same company
+    if row1[2] == row2[2]:
+        total += 30                                   # same email
+    if row1[3] == row2[3]:
+        total += 25                                   # same phone
+    return total
+
+
+def part2(merchants, target_id, threshold):
+    # Find the target's row
+    for row in merchants:
+        if row[0] == target_id:
+            target = row
+
+    result = []
+    for row in merchants:
+        if row[0] == target_id:
+            continue                                  # skip the target itself
+        if score(target, row) >= threshold:           # enough points?
+            result.append(row[0])
+    return sorted(result)
+
+
+# ==========================================================
+# PART 3: up to two links (friends + friends of friends)
+# ==========================================================
+def part3(merchants, target_id, threshold):
+    # Round 1: the target's direct links (this is just Part 2)
+    friends = part2(merchants, target_id, threshold)
+
+    result = set(friends)                             # a set ignores duplicates
+
+    # Round 2: for each friend, add THEIR direct links
+    for friend_id in friends:
+        for other_id in part2(merchants, friend_id, threshold):
+            if other_id != target_id:                 # never add the target
+                result.add(other_id)
+
+    # No round 3: we stop at two links
+    return sorted(result)
+
+
+# ==========================================================
+# TESTS
+# ==========================================================
+if __name__ == "__main__":
+    nine = [
+        ["A", "C0", "E0", "P0"],
+        ["B", "C0", "E0", "P1"],
+        ["C", "C0", "E1", "P1"],
+        ["D", "C1", "E1", "P1"],
+        ["E", "C0", "E0", "P0"],
+        ["F", "CF", "EF", "PF"],
+        ["G", "C0", "EG", "P0"],
+        ["H", "CH", "E0", "P0"],
+        ["I", "C0", "E1", "P9"],
+    ]
+
+    # ---- Part 1 ----
+    assert part1(nine, "A") == ["B", "C", "E", "G", "H", "I"]   # question's example
+    assert part1([["A", "x", "y", "z"]], "A") == []              # only the target
+    assert part1([["A", "x", "y", "z"], ["B", "q", "r", "s"]], "A") == []  # nothing shared
+    print("Part 1: all tests passed")
+
+    # ---- Part 2 ----
+    assert score(nine[0], nine[1]) == 80        # A-B: company + email
+    assert score(nine[0], nine[4]) == 105       # A-E: everything
+    assert score(nine[0], nine[7]) == 55        # A-H: email + phone
+    assert part2(nine, "A", 55) == ["B", "E", "G", "H"]          # question's example
+    assert part2(nine, "A", 0) == ["B", "C", "D", "E", "F", "G", "H", "I"]  # 0 >= 0
+    assert part2(nine, "A", 106) == []          # max score is 105
+    print("Part 2: all tests passed")
+
+    # ---- Part 3 ----
+    assert part3(nine, "A", 55) == ["B", "C", "E", "G", "H"]     # question's example
+    assert part3(nine, "A", 106) == []          # no links at all
+    chain = [["A", "c1", "e1", "p1"],           # A-B share company
+             ["B", "c1", "e2", "p2"],           # B-C share email
+             ["C", "c2", "e2", "p3"],           # C-D share phone
+             ["D", "c3", "e3", "p3"]]
+    assert part3(chain, "A", 25) == ["B", "C"]  # D is 3 links away: excluded
+    print("Part 3: all tests passed")
